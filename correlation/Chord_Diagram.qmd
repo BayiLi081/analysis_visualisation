@@ -1,0 +1,395 @@
+---
+title: "Chord Diagram"
+format: html
+editor: visual
+---
+
+## Loading the data and required packages
+
+```{r}
+library(ggraph)
+library(tidygraph)
+# install.packages("devtools")
+#devtools::install_github("Hy4m/linkET", force = TRUE)
+library("linkET")
+packageVersion("linkET")
+packageVersion("igraph")
+#devtools::install_github("Hy4m/netET")
+library(netET)
+```
+
+You can add options to executable code like this
+
+```{r}
+matrix_data(list(mtcars = mtcars))
+
+matrix_data(list(mtcars = mtcars)) %>% 
+  as_md_tbl()
+
+as_matrix_data(mtcars)
+
+head(mtcars)
+```
+
+```{r}
+
+as_md_tbl(mtcars)
+
+correlate(mtcars) %>% 
+  as_md_tbl()
+```
+
+```{r}
+correlate(mtcars) %>% 
+  as_md_tbl() %>% 
+  qcorrplot() +
+  geom_square()
+```
+
+```{r}
+
+library(reshape2)
+library(corrplot)
+library(plyr)
+library(igraph)
+library(autoReg)
+library(tidyverse)
+library(ggsci)
+library(stats)
+
+## 详情可以到此教程中查看
+corr <- cor(mtcars, method = "spearman")
+
+
+```
+
+```{r}
+corrplot(corr,title = "", 
+         method = "circle", #或"circle" (default), "square", "ellipse", "number", "pie", "shade" and "color"
+         outline = T, 
+         addgrid.col = "darkgray", 
+         order="hclust", addrect = 4, #hclust聚为4类，根据数据的具体情况调整
+         mar = c(4,0,4,0), 
+         rect.col = "black", rect.lwd = 2, cl.pos = "b", 
+         tl.col = "black", tl.cex = 1, cl.cex = 1.5, tl.srt=60)
+```
+
+```{r}
+corrplot(corr,order = "AOE",type="upper",tl.pos = "tp")
+corrplot(corr, title = "",
+         method = "number",
+         outline = T,
+         add = TRUE, type = "lower",
+         order="AOE",
+         # col="black",
+         # diag=FALSE,
+         tl.pos="n", cl.pos="n")
+```
+
+输出相关性p值和corr值代码如下：
+
+```{r}
+cor.mtest <- function(corr, ...) {
+  corr <- as.matrix(corr)
+  n <- ncol(corr)
+  p.corr <- matrix(NA, n, n)
+  diag(p.corr) <- 0
+  for (i in 1:(n - 1)) {
+    for (j in (i + 1):n) {
+      tmp <- cor.test(corr[, i], method = "spearman", corr[,j], ...)
+      p.corr[i, j] <- p.corr[j, i] <- tmp$p.value
+    }
+  }
+  colnames(p.corr) <- rownames(p.corr) <- colnames(corr)
+  p.corr
+}
+
+p.mat <- cor.mtest(mtcars)
+head(p.mat)
+```
+
+## Calculating the correlation between two data frames
+
+```{r}
+library(vegan)
+data("varespec")
+data("varechem")
+```
+
+```{r}
+dim(varespec)
+varespec[1:10,1:10]
+```
+
+```{r}
+dim(varechem)
+varechem[1:10,1:10]
+```
+
+```{r}
+correlate(varespec[1:30], varechem) %>% 
+  qcorrplot() +
+  geom_square() +
+  scale_fill_gradientn(colours = RColorBrewer::brewer.pal(11, "RdBu"))
+```
+
+```{r}
+qcorrplot(varespec[1:30], type = "lower") +
+  geom_square() +
+  scale_fill_gradientn(colours = RColorBrewer::brewer.pal(11, "RdBu"))
+```
+
+## Basic hotspot plot of a correlation matrix
+
+```{r}
+
+##ggcorrplot相关性图可视化
+library(ggcorrplot)
+library(ggtext)
+library(RColorBrewer)
+library(tidyverse)
+```
+
+
+```{r}
+#将变量的首字母转为大写（主要为了看起来舒服一点，没什么用）
+names(mtcars) = str_to_title(names(mtcars))
+
+#计算相关性矩阵
+corr_data <- round(cor(mtcars), 1)
+
+#计算对应的p值
+p_mat <- cor_pmat(mtcars)
+```
+
+```{r}
+ggcorrplot(corr_data,
+           outline.color = "black") +
+    scale_fill_gradientn(colors =  brewer.pal(11, "Spectral"),
+                         name = NULL)+
+    labs(x=NULL,y=NULL,
+         title = "Example of <span style='color:#c1281a'>Correlation heat map</span>",
+         subtitle = "draw charts with <span style='color:#03329a'>ggcorrplot()</span>") +
+    hrbrthemes::theme_ipsum() +
+    theme(  
+        plot.title = element_markdown(color = "black", size=18),
+        plot.subtitle = element_markdown(hjust = 0,vjust = .5, size=14),
+        legend.key.height = unit(1, "null"),
+        legend.key.width = unit(0.5, "cm"),
+        legend.frame = element_rect(color="black", linewidth = 0.25),
+        plot.margin = margin(10, 10, 10, 10),
+        plot.background = element_rect(fill = "white", color = "white"))
+```
+
+```{r}
+
+ggcorrplot(corr_data,
+           method = "circle",
+           hc.order = TRUE,
+           outline.color = "grey20") +
+    scale_fill_gradientn(colors =  brewer.pal(11, "Spectral"),
+                         name = NULL)+
+    labs(x=NULL,y=NULL,
+         title = "Example of <span style='color:#c1281a'>Correlation heat map</span>",
+         subtitle = "draw charts with <span style='color:#03329a'>ggcorrplot()</span>") +
+    hrbrthemes::theme_ipsum() +
+    theme(  
+        plot.title = element_markdown(color = "black", size=18),
+        plot.subtitle = element_markdown(hjust = 0,vjust = .5, size=14),
+        legend.key.height = unit(1, "null"),
+        legend.key.width = unit(0.5, "cm"),
+        legend.frame = element_rect(color="black", linewidth = 0.25),
+        plot.margin = margin(10, 10, 10, 10),
+        plot.background = element_rect(fill = "white", color = "white"))
+```
+
+```{r}
+ggcorrplot(corr_data,
+           method = "circle",
+           type = "lower",
+           lab = TRUE,
+           lab_col = "grey20",
+           lab_size = 3.5,
+           outline.color = "grey20") +
+    scale_fill_gradientn(colors =  brewer.pal(11, "Spectral"),
+                         name = NULL)+
+    labs(x=NULL,y=NULL,
+         title = "Example of <span style='color:#c1281a'>Correlation heat map</span>",
+         subtitle = "draw charts with <span style='color:#03329a'>ggcorrplot()</span>") +
+    hrbrthemes::theme_ipsum() +
+    theme(  
+        plot.title = element_markdown(color = "black", size=18),
+        plot.subtitle = element_markdown(hjust = 0,vjust = .5, size=14),
+        legend.key.height = unit(1, "null"),
+        legend.key.width = unit(0.5, "cm"),
+        legend.frame = element_rect(color="black", linewidth = 0.25),
+        plot.margin = margin(10, 10, 10, 10),
+        plot.background = element_rect(fill = "white", color = "white"))
+```
+
+```{r}
+
+ggcorrplot(corr_data,
+           type = "upper",
+           p.mat = p_mat,
+           outline.color = "grey20") +
+    scale_fill_gradientn(colors =  brewer.pal(11, "Spectral"),
+                         name = NULL)+
+    labs(x=NULL,y=NULL,
+         title = "Example of <span style='color:#c1281a'>Correlation heat map</span>",
+         subtitle = "draw charts with <span style='color:#03329a'>ggcorrplot()</span>") +
+    hrbrthemes::theme_ipsum() +
+    theme(  
+        plot.title = element_markdown(color = "black", size=18),
+        plot.subtitle = element_markdown(hjust = 0,vjust = .5, size=14),
+        legend.key.height = unit(1, "null"),
+        legend.key.width = unit(0.5, "cm"),
+        legend.frame = element_rect(color="black", linewidth = 0.25),
+        plot.margin = margin(10, 10, 10, 10),
+        plot.background = element_rect(fill = "white", color = "white"))
+```
+
+
+
+## Mantel test with R
+
+The Mantel test, named after Nathan Mantel, is a statistical test of the correlation between two matrices.
+
+```{r}
+##mantel test
+library(dplyr)
+
+data("varechem", package = "vegan")
+data("varespec", package = "vegan")
+```
+
+```{r}
+mantel <- mantel_test(varespec,   ## 分类数据
+                      varechem,  ## 影响因子数据
+                      ## 以下代码是根据varespec（分类数据）进行分析计算
+                      spec_select = list(Spec01 = 1:7,
+                                         Spec02 = 8:18,
+                                         Spec03 = 19:37,
+                                         Spec04 = 38:44)) %>% 
+  mutate(rd = cut(r, breaks = c(-Inf, 0.2, 0.4, Inf),
+                  labels = c("< 0.2", "0.2 - 0.4", ">= 0.4")),
+         pd = cut(p, breaks = c(-Inf, 0.01, 0.05, Inf),
+                  labels = c("< 0.01", "0.01 - 0.05", ">= 0.05")))
+```
+
+```{r}
+head(mantel)
+```
+
+```{r}
+## 绘制相关性热图
+D0 <- qcorrplot(correlate(varechem), type = "lower", diag = FALSE) +  
+  geom_square() +   ## 相关性热图的形状
+  ## 
+  geom_couple(aes(colour = pd, size = rd), 
+              data = mantel, 
+              curvature = nice_curvature()) +
+  ## 颜色参数调整
+  scale_fill_gradientn(colours = RColorBrewer::brewer.pal(11, "RdBu")) +
+  scale_size_manual(values = c(0.5, 1, 2)) +
+  scale_colour_manual(values = color_pal(3)) +
+  guides(size = guide_legend(title = "Mantel's r",
+                             override.aes = list(colour = "grey35"), 
+                             order = 2),
+         colour = guide_legend(title = "Mantel's p", 
+                               override.aes = list(size = 3), 
+                               order = 1),
+         fill = guide_colorbar(title = "Pearson's r", order = 3))
+D0
+ggsave("Mental相关性网络图.jpg",width = 6, height = 6)
+```
+
+```{r}
+p1 <- correlate(varechem, varespec, method = "spearman") |> 
+  as_tbl_graph(abs(r) > 0.5, p < 0.05)
+
+# 计算节点的度中心性
+degree_centrality <- degree(p1)
+
+# 计算节点的度中心性
+degree_centrality <- degree(p1, mode = "all")
+
+# 将中心性值添加到 p1 中
+p1$Degree <- degree_centrality
+
+p1 <- p1 |>
+  mutate(Degree = degree_centrality)
+```
+
+```{r}
+### 简洁代码
+p1 <- correlate(varechem, varespec, method = "spearman") |> 
+  as_tbl_graph(abs(r) > 0.5, p < 0.05) |>
+  mutate(Degree = centrality_degree())
+```
+
+```{r}
+xy <- layout_on_circle(p1)
+head(xy)
+```
+
+```{r}
+D1 <- ggraph(p1, xy) +
+  #geom_edge_fan(aes(colour = r > 0), width = 0.75, linetype="dashed") + #width 改变线条粗细
+  geom_edge_fan(aes(colour = r > 0), width = 0.8) +
+  geom_node_point(aes(size = Degree), colour = "#fa8c35") +
+  scale_edge_colour_manual(values = c("TRUE" = "#c93756", "FALSE" = "#21a675"),#R>0,为TRUE
+                           labels = c("Negative", "Positive")) +
+  geom_node_text(aes(x = 1.07 * x,
+                     y = 1.07 * y,
+                     label = name,
+                     angle = node_angle(x, y)),
+                 hjust = "outward",
+                 data = function(data) dplyr::filter(data, Degree > 0)) +
+  expand_limits(x = c(-1.5, 1.5), y = c(-1.5, 1.5)) + #
+  coord_fixed(clip = "off") + 
+  theme(panel.background = element_blank()) + 
+  labs(edge_colour = "Spearman's r")
+
+ggsave("环形网络图.jpg", width = 6, height = 6)
+```
+
+```{r}
+
+p2 <- correlate(varechem, varespec, method = "spearman") |> 
+  as_tbl_graph(abs(r) > 0.5, p < 0.05) |>
+  mutate(Degree = centrality_degree()) |>
+  as_bipartite_circular(outer_nodes = names(varespec))
+p2
+```
+
+```{r}
+
+D2 <- ggraph(p2, layout_bipartite_circular(p2)) +
+  annotate_arc_rect(0, 180, 
+                    fill = "#e0eee8", 
+                    r0 = 0.55, 
+                    r1 = 1.05) +
+  geom_edge_circular(aes(colour = r > 0), edge_width = 0.75, edge_alpha = 0.8) +
+  geom_node_point(aes(size = Degree, colour = Degree == 0)) +
+  geom_node_text_circular(expand = 0.08) +
+  scale_colour_manual(values = c("TRUE" = "grey55","FALSE" = "#065279"),
+                      guide = "none") +
+  scale_edge_colour_manual(values = c("TRUE" = "#c93756", "FALSE" = "#21a675"),
+                           labels = c("Negative", "Positive")) +
+  coord_fixed(clip = "off", xlim = c(-1.2, 1.2), ylim = c(0, 1.1)) +
+  theme(panel.background = element_blank()) +
+  guides(edge_colour = guide_legend(override.aes = list(edge_width = 1))) +
+  labs(edge_colour = "Spearman's r")
+D2
+ggsave("二分网络图.jpg", width = 8, height = 8)
+      
+```
+
+```{r}
+library(patchwork)
+library(cowplot)
+
+D0+D1+D2+plot_layout(nrow = 1, ncol = 3, widths = c(6,5,6))
+ggsave("20231012.jpg", width = 20, height = 10)
+```
